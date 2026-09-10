@@ -728,7 +728,7 @@
             const peakY = Math.min(startY, targetY) - 130;
 
             function step() {
-                shootProgress += 0.05; // 농구공 슈팅 속도 증가 (기존 0.025 -> 0.05)
+                shootProgress += 0.15; // 농구공 슈팅 속도 3배 증가 (기존 0.05 -> 0.15)
 
                 if (shootProgress <= 1) {
                     const t = shootProgress;
