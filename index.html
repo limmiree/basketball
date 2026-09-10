@@ -447,34 +447,34 @@
             const fontBase = Math.max(12, Math.min(22, Math.floor(width / 38)));
 
             // 1. Draw Player Avatar (Always visible on screen)
-            // Head Base
+            // Head Base (Skin Tone)
             ctx.fillStyle = '#fde047';
             ctx.beginPath();
             ctx.arc(playerX, eyeY - 15, 14, 0, Math.PI * 2);
             ctx.fill();
 
-            // Hair (Black Short Cut)
-            ctx.fillStyle = '#0f172a';
+            // Hair (Short Black Hair on Top - Face & Eye sides remain skin color)
+            ctx.fillStyle = '#090d16';
             ctx.beginPath();
-            ctx.arc(playerX, eyeY - 18, 15, Math.PI * 0.9, Math.PI * 2.1, false);
+            ctx.arc(playerX, eyeY - 22, 11, Math.PI * 0.9, Math.PI * 2.1, false);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(playerX - 6, eyeY - 24, 7, 0, Math.PI * 2);
-            ctx.arc(playerX + 2, eyeY - 25, 7, 0, Math.PI * 2);
-            ctx.arc(playerX + 8, eyeY - 22, 6, 0, Math.PI * 2);
+            ctx.arc(playerX - 4, eyeY - 25, 5, 0, Math.PI * 2);
+            ctx.arc(playerX + 2, eyeY - 26, 5, 0, Math.PI * 2);
+            ctx.arc(playerX + 7, eyeY - 24, 4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Eyes
+            // Eyes (Rendered clearly on skin tone background)
             ctx.fillStyle = '#0f172a';
             ctx.beginPath();
-            ctx.arc(playerX + 2, eyeY - 16, 2, 0, Math.PI * 2);
-            ctx.arc(playerX + 7, eyeY - 16, 2, 0, Math.PI * 2);
+            ctx.arc(playerX + 2, eyeY - 14, 2, 0, Math.PI * 2);
+            ctx.arc(playerX + 7, eyeY - 14, 2, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.arc(playerX + 3, eyeY - 17, 0.8, 0, Math.PI * 2);
-            ctx.arc(playerX + 8, eyeY - 17, 0.8, 0, Math.PI * 2);
+            ctx.arc(playerX + 3, eyeY - 15, 0.8, 0, Math.PI * 2);
+            ctx.arc(playerX + 8, eyeY - 15, 0.8, 0, Math.PI * 2);
             ctx.fill();
 
             // Nose
