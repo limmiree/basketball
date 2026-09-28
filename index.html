@@ -65,6 +65,11 @@
                     <span id="streakText" class="text-sm sm:text-base md:text-xl font-black text-orange-300">0 🔥</span>
                 </div>
 
+                <div class="bg-sky-950/80 border border-sky-500/30 px-2.5 sm:px-3 py-1 rounded-xl text-center min-w-[55px] sm:min-w-[70px]">
+                    <span class="text-[9px] sm:text-[10px] font-bold text-sky-400 block whitespace-nowrap">남은 시간</span>
+                    <span id="timerText" class="text-sm sm:text-base md:text-xl font-black text-sky-300">5:00</span>
+                </div>
+
                 <button id="cameraToggleBtn" onclick="toggleCamera()" class="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap">
                     <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current shrink-0" viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
                     <span>카메라 시작</span>
@@ -307,6 +312,13 @@
         let streak = 0;
         let currentQuestion = null;
         let questionIndex = 0;
+
+        // Game Time Limit (5 minutes)
+        const GAME_DURATION_SEC = 5 * 60;
+        let timeRemaining = GAME_DURATION_SEC;
+        let gameTimerInterval = null;
+        let timerStarted = false;
+        let gameEnded = false;
 
         // Default GAS Web App URL
         const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyILMeKVUikR_iEVCi-8Tuqohfb1kfx5f2LtolYflLUv6IURD-4tvop0AZZZnv06Xlf/exec';
@@ -762,10 +774,101 @@
             requestAnimationFrame(step);
         }
 
+        // ===== 5-Minute Game Timer =====
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateTimerDisplay() {
+            const el = document.getElementById('timerText');
+            if (!el) return;
+            el.innerText = formatTime(Math.max(timeRemaining, 0));
+            if (timeRemaining <= 30) {
+                el.classList.remove('text-sky-300');
+                el.classList.add('text-rose-400', 'animate-pulse');
+            }
+        }
+
+        function startGameTimer() {
+            if (timerStarted || gameEnded) return;
+            timerStarted = true;
+            updateTimerDisplay();
+            gameTimerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                if (timeRemaining <= 0) {
+                    clearInterval(gameTimerInterval);
+                    gameTimerInterval = null;
+                    endGameByTimeout();
+                }
+            }, 1000);
+        }
+
+        function endGameByTimeout() {
+            if (gameEnded) return;
+            gameEnded = true;
+
+            // Lock further answers
+            document.querySelectorAll('#optionsContainer button').forEach(btn => btn.disabled = true);
+
+            // Stop the camera if it's running
+            if (webCamActive) {
+                toggleCamera();
+            }
+
+            // Disable the camera start button so the game can't be restarted
+            const camBtn = document.getElementById('cameraToggleBtn');
+            if (camBtn) {
+                camBtn.disabled = true;
+                camBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                camBtn.innerHTML = `<span>⏰ 게임 종료</span>`;
+            }
+
+            submitFinalRecord();
+        }
+
+        // Submits the student's final score/streak once the 5-minute timer runs out,
+        // regardless of whether they scored points or already used the manual submit button.
+        async function submitFinalRecord() {
+            const studentId = localStorage.getItem('trig_student_id') || (document.getElementById('inputStudentId') ? document.getElementById('inputStudentId').value.trim() : '');
+            const studentName = localStorage.getItem('trig_student_name') || (document.getElementById('inputStudentName') ? document.getElementById('inputStudentName').value.trim() : '');
+
+            if (gasScriptUrl && studentId && studentName) {
+                const record = {
+                    studentId: studentId,
+                    studentName: studentName,
+                    score: score,
+                    streak: streak,
+                    date: new Date().toISOString().split('T')[0].replace(/-/g, '.')
+                };
+                try {
+                    await fetch(gasScriptUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(record)
+                    });
+                } catch (e) {
+                    console.error('Final record submit error:', e);
+                }
+                alert(`⏰ 5분 게임 시간이 종료되었습니다!\n최종 점수: ${score}점 (연속 성공 ${streak}회)\n기록이 자동으로 제출되었습니다.`);
+            } else {
+                alert(`⏰ 5분 게임 시간이 종료되었습니다!\n최종 점수: ${score}점 (연속 성공 ${streak}회)\n\n기록을 저장하려면 '내 기록 확인'에서 학번과 이름을 입력한 후 제출해주세요.`);
+                openLeaderboard();
+            }
+        }
+
         async function toggleCamera() {
             const btn = document.getElementById('cameraToggleBtn');
             const placeholder = document.getElementById('camPlaceholder');
             const hud = document.getElementById('poseHudOverlay');
+
+            if (gameEnded) {
+                alert('5분 게임 시간이 종료되었습니다. 다시 도전하려면 페이지를 새로고침해주세요.');
+                return;
+            }
 
             if (webCamActive) {
                 if (cameraObj) cameraObj.stop();
@@ -820,6 +923,9 @@
                 webCamActive = true;
                 placeholder.classList.add('hidden');
                 hud.classList.remove('hidden');
+
+                // Start the 5-minute game timer the first time the camera turns on
+                startGameTimer();
 
                 btn.disabled = false;
                 btn.className = "px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap";
@@ -994,7 +1100,7 @@
         }
 
         function selectOption(optionIdx) {
-            if (isAnimating) return;
+            if (isAnimating || gameEnded) return;
 
             const isCorrect = (optionIdx === currentQuestion.correctIdx);
 
